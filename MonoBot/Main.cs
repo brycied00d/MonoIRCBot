@@ -23,6 +23,7 @@ namespace MonoBot
 		public string name;
 		public string admin;
 		public string[] channels;
+		public string password;
 	}
 	class IRCBOT
 	{
