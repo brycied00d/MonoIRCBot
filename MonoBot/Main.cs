@@ -23,16 +23,19 @@ namespace MonoBot
 		public string name;
 		public string admin;
 		public string[] channels;
+		public bool nickserv;
+		public string nickservUserName;
 		public string password;
+		public bool debug;
 	}
-	class IRCBOT
+	class IRCBot
 	{
 		Config config;
 		TcpClient sock;
 		Stream stm;
 		StreamReader Reader;
 		StreamWriter Writer;
-		public IRCBOT (Config config)
+		public IRCBot (Config config)
 		{
 			this.config = config;
 
@@ -42,10 +45,12 @@ namespace MonoBot
 				stm = sock.GetStream ();
 				Writer = new StreamWriter (stm);
 				Reader = new StreamReader (stm);
-				Writer.WriteLine ("USER " + config.nick + "  8 * :" + config.name);
-				Writer.Flush();
-				Writer.WriteLine("NICK " + config.nick);
-				Writer.Flush();
+				SendData("USER", config.nick + "  8 * :" + config.name);
+				SendData("NICK " + config.nick);
+				if (config.nickserv == true){
+					ChanMessage ("nickserv", "id ", config.nickservUserName + config.password);
+				}
+				bool debug = config.debug;
 				/* Kick off the Worker Process */
 				IRCWork();
 			} 
@@ -54,30 +59,44 @@ namespace MonoBot
 			}
 		}
 
+		/* Message sending functions*/
+		/*Raw Data*/
+		public void SendData (string Command,string Message)
+		{
+			Writer.WriteLine(Command + " " + Message);
+			Writer.Flush();
+			Console.WriteLine(Command + " " + Message);
+		}
+		/* Channel and Private messages */
+		public void ChanMessage (string target, string message)
+		{
+			SendData ("PRIVMSG", target + " :" + message);
+		}
+
+		/* Worker function */
 		public void IRCWork()
 		{
 			try {
 				/* Join all the chans. */
 				foreach (string channel in config.channels){
-					Writer.WriteLine ("JOIN "+ channel);
-					Writer.Flush();
+					SendData ("JOIN", channel);
 				}
 				bool exit = false;
 				/* Worker Loop */
 				while (exit == false) {
 					string data = Reader.ReadLine().ToString();
+					if (debug == true){
 					Console.WriteLine(data);
+					}
 					char [] delim = new char[] { ' ' };
 					string[] splt = data.Split(delim,5);
 					string command;
 					/* Respond to server PINGs to stay online */
 					if (splt[0].Contains("PING"))
 					{
-						Console.WriteLine("PONG!");
-						Writer.WriteLine("PONG " + ":"+splt[1]);
-						Writer.Flush();
-						Writer.WriteLine("PING " + splt[1]);
-						Writer.Flush();
+						Console.WriteLine("Keep Alive");
+						SendData ("PONG",":"+splt[1]);
+						SendData("PING", splt[1]);
 					}
 					/* Admin only commands */
 					if (splt[0].StartsWith(config.admin))
@@ -87,27 +106,20 @@ namespace MonoBot
 							switch (command)
 							{
 								case ":!join":
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :Joining"+splt[4]);
-									Writer.Flush ();
-									Writer.WriteLine("JOIN "+ splt[4]);
-									Writer.Flush ();
+									SendData ("PRIVMSG", config.admin + " :Joining"+splt[4]);
+									SendData ("JOIN", splt[4]);
 									break;
 								case ":!part":
 									Console.WriteLine(string.Format("{0} {1}",splt[2],splt[3]));
-									Writer.WriteLine("PART "+ splt[4] + "Gone");
-									Writer.Flush ();
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :Left "+ splt[4]);
-									Writer.Flush ();
+									SendData ("PART ", splt[4] + "Gone");
+									SendData ("PRIVMSG", config.admin + " :Left "+ splt[4]);
 									break;
 								case ":!help":
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :There is no help sucka!");
-									Writer.Flush();
+									SendData ("PRIVMSG", config.admin + " :There is no help sucka!");
 									break;
 								case ":!quit":
-									Writer.WriteLine("QUIT Bot leaving");
-									Writer.Flush ();
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :GoodBye");
-									Writer.Flush ();
+									SendData ("PRIVMSG", config.admin + " :GoodBye");
+									SendData ("QUIT","Bot leaving");
 									exit = true;
 									sock.Close ();
 									break;
@@ -123,8 +135,7 @@ namespace MonoBot
 								string[] bender = {"Sounds like fun on a bun!","Bite my shiny metal ass","Kill all humans"};
 								Random Random = new Random();
 								int rndBender = Random.Next(0,(bender.Length));
-								Writer.WriteLine("PRIVMSG "+ splt[2] + " :" + bender[rndBender]);
-								Writer.Flush ();
+								ChanMessage (splt[2], bender[rndBender]);
 								break;
 						}
 					}
@@ -147,9 +158,10 @@ namespace MonoBot
 			conf.server = "chat.freenode.net";
 			conf.port = 6667;
 			conf.admin = ":kusuriya!";
+			conf.debug = false;
 			string[] channels = {"#kusu"};
 			conf.channels = channels;
-			new IRCBOT(conf);
+			new IRCBot(conf);
 		}
 	}
 }
