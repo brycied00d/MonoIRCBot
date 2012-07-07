@@ -136,7 +136,6 @@ namespace MonoBot
 								Random Random = new Random();
 								int rndBender = Random.Next(0,(bender.Length));
 								ChanMessage (splt[2], bender[rndBender]);
-								Writer.Flush ();
 								break;
 						}
 					}
