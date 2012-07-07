@@ -53,20 +53,24 @@ namespace MonoBot
 				Console.WriteLine(e);
 			}
 		}
-
+		public void SendData (string Command,string Message)
+		{
+			Writer.WriteLine(Command + " " + Message);
+			Writer.Flush();
+			Console.WriteLine(Command + " " + Message);
+		}
 		public void IRCWork()
 		{
 			try {
 				/* Join all the chans. */
 				foreach (string channel in config.channels){
-					Writer.WriteLine ("JOIN "+ channel);
-					Writer.Flush();
+					SendData ("JOIN", channel);
 				}
 				bool exit = false;
 				/* Worker Loop */
 				while (exit == false) {
 					string data = Reader.ReadLine().ToString();
-					Console.WriteLine(data);
+					//Console.WriteLine(data);
 					char [] delim = new char[] { ' ' };
 					string[] splt = data.Split(delim,5);
 					string command;
@@ -74,10 +78,8 @@ namespace MonoBot
 					if (splt[0].Contains("PING"))
 					{
 						Console.WriteLine("PONG!");
-						Writer.WriteLine("PONG " + ":"+splt[1]);
-						Writer.Flush();
-						Writer.WriteLine("PING " + splt[1]);
-						Writer.Flush();
+						SendData ("PONG",":"+splt[1]);
+						SendData("PING", splt[1]);
 					}
 					/* Admin only commands */
 					if (splt[0].StartsWith(config.admin))
@@ -87,27 +89,20 @@ namespace MonoBot
 							switch (command)
 							{
 								case ":!join":
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :Joining"+splt[4]);
-									Writer.Flush ();
-									Writer.WriteLine("JOIN "+ splt[4]);
-									Writer.Flush ();
+									SendData ("PRIVMSG", config.admin + " :Joining"+splt[4]);
+									SendData ("JOIN", splt[4]);
 									break;
 								case ":!part":
 									Console.WriteLine(string.Format("{0} {1}",splt[2],splt[3]));
-									Writer.WriteLine("PART "+ splt[4] + "Gone");
-									Writer.Flush ();
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :Left "+ splt[4]);
-									Writer.Flush ();
+									SendData ("PART ", splt[4] + "Gone");
+									SendData ("PRIVMSG", config.admin + " :Left "+ splt[4]);
 									break;
 								case ":!help":
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :There is no help sucka!");
-								Writer.Flush();
+									SendData ("PRIVMSG", config.admin + " :There is no help sucka!");
 									break;
 								case ":!quit":
-									Writer.WriteLine("QUIT Bot leaving");
-									Writer.Flush ();
+									SendData ("QUIT","Bot leaving");
 									Writer.WriteLine("PRIVMSG "+ config.admin + " :GoodBye");
-									Writer.Flush ();
 									exit = true;
 									sock.Close ();
 									break;
@@ -123,7 +118,7 @@ namespace MonoBot
 								string[] bender = {"Sounds like fun on a bun!","Bite my shiny metal ass","Kill all humans"};
 								Random Random = new Random();
 								int rndBender = Random.Next(0,(bender.Length));
-								Writer.WriteLine("PRIVMSG "+ splt[2] + " :" + bender[rndBender]);
+								SendData ("PRIVMSG", splt[2] + " :" + bender[rndBender]);
 								Writer.Flush ();
 								break;
 						}
