@@ -24,6 +24,7 @@ namespace MonoBot
 		public string admin;
 		public string[] channels;
 		public string password;
+		public bool debug;
 	}
 	class IRCBOT
 	{
@@ -46,6 +47,7 @@ namespace MonoBot
 				Writer.Flush();
 				Writer.WriteLine("NICK " + config.nick);
 				Writer.Flush();
+				bool debug = config.debug;
 				/* Kick off the Worker Process */
 				IRCWork();
 			} 
@@ -59,6 +61,10 @@ namespace MonoBot
 			Writer.Flush();
 			Console.WriteLine(Command + " " + Message);
 		}
+		public void Message (string target, string message)
+		{
+			SendData ("PRIVMSG", target + " :" + message);
+		}
 		public void IRCWork()
 		{
 			try {
@@ -70,7 +76,9 @@ namespace MonoBot
 				/* Worker Loop */
 				while (exit == false) {
 					string data = Reader.ReadLine().ToString();
-					//Console.WriteLine(data);
+					if (debug == true){
+					Console.WriteLine(data);
+					}
 					char [] delim = new char[] { ' ' };
 					string[] splt = data.Split(delim,5);
 					string command;
@@ -142,6 +150,7 @@ namespace MonoBot
 			conf.server = "chat.freenode.net";
 			conf.port = 6667;
 			conf.admin = ":kusuriya!";
+			conf.debug = false;
 			string[] channels = {"#kusu"};
 			conf.channels = channels;
 			new IRCBOT(conf);
