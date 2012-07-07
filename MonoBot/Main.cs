@@ -23,17 +23,19 @@ namespace MonoBot
 		public string name;
 		public string admin;
 		public string[] channels;
+		public bool nickserv;
+		public string nickservUserName;
 		public string password;
 		public bool debug;
 	}
-	class IRCBOT
+	class IRCBot
 	{
 		Config config;
 		TcpClient sock;
 		Stream stm;
 		StreamReader Reader;
 		StreamWriter Writer;
-		public IRCBOT (Config config)
+		public IRCBot (Config config)
 		{
 			this.config = config;
 
@@ -43,10 +45,11 @@ namespace MonoBot
 				stm = sock.GetStream ();
 				Writer = new StreamWriter (stm);
 				Reader = new StreamReader (stm);
-				Writer.WriteLine ("USER " + config.nick + "  8 * :" + config.name);
-				Writer.Flush();
-				Writer.WriteLine("NICK " + config.nick);
-				Writer.Flush();
+				SendData("USER", config.nick + "  8 * :" + config.name);
+				SendData("NICK " + config.nick);
+				if (config.nickserv == true){
+					ChanMessage ("nickserv", "id ", config.nickservUserName + config.password);
+				}
 				bool debug = config.debug;
 				/* Kick off the Worker Process */
 				IRCWork();
@@ -55,16 +58,22 @@ namespace MonoBot
 				Console.WriteLine(e);
 			}
 		}
+
+		/* Message sending functions*/
+		/*Raw Data*/
 		public void SendData (string Command,string Message)
 		{
 			Writer.WriteLine(Command + " " + Message);
 			Writer.Flush();
 			Console.WriteLine(Command + " " + Message);
 		}
-		public void Message (string target, string message)
+		/* Channel and Private messages */
+		public void ChanMessage (string target, string message)
 		{
 			SendData ("PRIVMSG", target + " :" + message);
 		}
+
+		/* Worker function */
 		public void IRCWork()
 		{
 			try {
@@ -85,7 +94,7 @@ namespace MonoBot
 					/* Respond to server PINGs to stay online */
 					if (splt[0].Contains("PING"))
 					{
-						Console.WriteLine("PONG!");
+						Console.WriteLine("Keep Alive");
 						SendData ("PONG",":"+splt[1]);
 						SendData("PING", splt[1]);
 					}
@@ -109,8 +118,8 @@ namespace MonoBot
 									SendData ("PRIVMSG", config.admin + " :There is no help sucka!");
 									break;
 								case ":!quit":
+									SendData ("PRIVMSG", config.admin + " :GoodBye");
 									SendData ("QUIT","Bot leaving");
-									Writer.WriteLine("PRIVMSG "+ config.admin + " :GoodBye");
 									exit = true;
 									sock.Close ();
 									break;
@@ -126,7 +135,7 @@ namespace MonoBot
 								string[] bender = {"Sounds like fun on a bun!","Bite my shiny metal ass","Kill all humans"};
 								Random Random = new Random();
 								int rndBender = Random.Next(0,(bender.Length));
-								SendData ("PRIVMSG", splt[2] + " :" + bender[rndBender]);
+								ChanMessage (splt[2], bender[rndBender]);
 								Writer.Flush ();
 								break;
 						}
@@ -153,7 +162,7 @@ namespace MonoBot
 			conf.debug = false;
 			string[] channels = {"#kusu"};
 			conf.channels = channels;
-			new IRCBOT(conf);
+			new IRCBot(conf);
 		}
 	}
 }
