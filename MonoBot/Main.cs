@@ -100,6 +100,7 @@ namespace MonoBot
 									break;
 								case ":!help":
 									Writer.WriteLine("PRIVMSG "+ config.admin + " :There is no help sucka!");
+									Writer.Flush();
 									break;
 								case ":!quit":
 									Writer.WriteLine("QUIT Bot leaving");
